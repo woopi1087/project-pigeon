@@ -1,0 +1,113 @@
+name: Deploy Pigeon (Dev)
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - '**'
+      - '!.github/workflows/**'
+      - '.github/workflows/deploy-pigeon-dev.yml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/pigeon
+  DEPLOY_PATH: /home/woopi/project/pigeon
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=dev
+            type=sha,prefix=dev-,format=short
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
+
+  deploy:
+    name: Deploy to Dev Server
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: dev
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy docker-compose to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEV_SSH_HOST }}
+          username: ${{ secrets.DEV_SSH_USER }}
+          key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.DEV_SSH_PORT || 22 }}
+          source: "docker/dev/docker-compose.yml"
+          target: ${{ env.DEPLOY_PATH }}
+          strip_components: 2
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEV_SSH_HOST }}
+          username: ${{ secrets.DEV_SSH_USER }}
+          key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.DEV_SSH_PORT || 22 }}
+          script: |
+            # Firebase 서비스 계정 키 배치
+            mkdir -p ${{ env.DEPLOY_PATH }}/config
+            echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' \
+              > ${{ env.DEPLOY_PATH }}/config/firebase-service-account.json
+
+            # .env 파일 생성 (docker compose 환경변수)
+            cat > ${{ env.DEPLOY_PATH }}/.env <<EOF
+            GITHUB_OWNER=${{ github.repository_owner }}
+            DB_USERNAME=${{ secrets.DB_USERNAME }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            SENTRY_DSN=${{ secrets.SENTRY_DSN }}
+            EOF
+
+            cd ${{ env.DEPLOY_PATH }}
+
+            echo "${{ secrets.GITHUB_TOKEN }}" | \
+              docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            docker compose pull pigeon
+            docker compose up -d --no-deps pigeon-db pigeon
+
+            docker image prune -f

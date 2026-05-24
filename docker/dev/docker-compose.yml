@@ -1,0 +1,56 @@
+services:
+  pigeon:
+    image: ghcr.io/${GITHUB_OWNER}/pigeon:dev
+    container_name: pigeon-dev
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      TZ: Asia/Seoul
+      GOOGLE_APPLICATION_CREDENTIALS: /app/config/firebase-service-account.json
+      DB_HOST: pigeon-db
+      DB_PORT: 5432
+      DB_NAME: pigeon
+      DB_USERNAME: ${DB_USERNAME:-pigeon}
+      DB_PASSWORD: ${DB_PASSWORD:-pigeon}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    volumes:
+      - /home/woopi/project/pigeon/config/firebase-service-account.json:/app/config/firebase-service-account.json:ro
+    ports:
+      - "8081:8081"
+    networks:
+      - safehome-net
+    depends_on:
+      pigeon-db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  pigeon-db:
+    image: postgres:16-alpine
+    container_name: pigeon-db-dev
+    environment:
+      POSTGRES_DB: pigeon
+      POSTGRES_USER: ${DB_USERNAME:-pigeon}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pigeon}
+      TZ: Asia/Seoul
+    volumes:
+      - pigeon-db-data:/var/lib/postgresql/data
+    networks:
+      - safehome-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-pigeon} -d pigeon"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pigeon-db-data:
+
+networks:
+  safehome-net:
+    external: true

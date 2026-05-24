@@ -1,3 +1,15 @@
 spring:
   application:
     name: pigeon
+  profiles:
+    active: local
+
+server:
+  port: 8081
+
+firebase:
+  credentials-path: firebase-service-account.json
+
+sentry:
+  dsn: ${SENTRY_DSN:}
+  send-default-pii: true

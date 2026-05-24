@@ -1,0 +1,28 @@
+FROM eclipse-temurin:21-jdk-alpine AS builder
+WORKDIR /workspace
+
+COPY gradlew .
+COPY gradle gradle
+COPY build.gradle.kts .
+COPY settings.gradle.kts .
+
+RUN chmod +x gradlew
+RUN ./gradlew dependencies --no-daemon -q 2>/dev/null || true
+
+COPY src src
+
+ARG SENTRY_AUTH_TOKEN
+ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
+
+RUN ./gradlew build -x test --no-daemon
+
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+COPY --from=builder /workspace/build/libs/pigeon-*.jar app.jar
+
+EXPOSE 8081
+ENTRYPOINT ["java", "-jar", "app.jar"]
