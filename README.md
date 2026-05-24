@@ -183,3 +183,4 @@ GitHub Actions (`deploy-pigeon-dev.yml`) — `develop` 브랜치 push 시 자동
 | `DB_USERNAME` | PostgreSQL 유저명 |
 | `DB_PASSWORD` | PostgreSQL 패스워드 |
 | `SENTRY_DSN` | Sentry DSN (런타임 에러 수집) |
+ 
