@@ -64,7 +64,6 @@ jobs:
     name: Deploy to Dev Server
     runs-on: ubuntu-latest
     needs: build-and-push
-    environment: dev
 
     steps:
       - name: Checkout
@@ -89,13 +88,14 @@ jobs:
           key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
           port: ${{ secrets.DEV_SSH_PORT || 22 }}
           script: |
+            mkdir -p ${{ env.DEPLOY_PATH }}/env
+
             # Firebase 서비스 계정 키 배치
-            mkdir -p ${{ env.DEPLOY_PATH }}/config
             echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' \
-              > ${{ env.DEPLOY_PATH }}/config/firebase-service-account.json
+              > ${{ env.DEPLOY_PATH }}/env/firebase-service-account.json
 
             # .env 파일 생성 (docker compose 환경변수)
-            cat > ${{ env.DEPLOY_PATH }}/.env <<EOF
+            cat > ${{ env.DEPLOY_PATH }}/env/.env <<EOF
             GITHUB_OWNER=${{ github.repository_owner }}
             DB_USERNAME=${{ secrets.DB_USERNAME }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
@@ -107,7 +107,7 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | \
               docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            docker compose pull pigeon
-            docker compose up -d --no-deps pigeon-db pigeon
+            docker compose --env-file ${{ env.DEPLOY_PATH }}/env/.env pull pigeon
+            docker compose --env-file ${{ env.DEPLOY_PATH }}/env/.env up -d --no-deps pigeon-db pigeon
 
             docker image prune -f

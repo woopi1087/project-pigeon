@@ -5,7 +5,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: dev
       TZ: Asia/Seoul
-      GOOGLE_APPLICATION_CREDENTIALS: /app/config/firebase-service-account.json
+      GOOGLE_APPLICATION_CREDENTIALS: /app/env/firebase-service-account.json
       DB_HOST: pigeon-db
       DB_PORT: 5432
       DB_NAME: pigeon
@@ -13,7 +13,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-pigeon}
       SENTRY_DSN: ${SENTRY_DSN:-}
     volumes:
-      - /home/woopi/project/pigeon/config/firebase-service-account.json:/app/config/firebase-service-account.json:ro
+      - /home/woopi/project/pigeon/env/firebase-service-account.json:/app/env/firebase-service-account.json:ro
     ports:
       - "8081:8081"
     networks:

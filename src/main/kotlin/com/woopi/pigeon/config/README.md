@@ -12,7 +12,7 @@ Firebase Admin SDK 초기화를 담당합니다.
 | 환경 | 자격증명 방식 |
 |------|-------------|
 | 로컬 | `src/main/resources/firebase-service-account.json` 직접 배치 |
-| dev (Docker) | `/app/config/firebase-service-account.json` 볼륨 마운트 + `GOOGLE_APPLICATION_CREDENTIALS` 환경변수 |
+| dev (Docker) | `/home/woopi/project/pigeon/env/firebase-service-account.json` 볼륨 마운트 → `/app/env/firebase-service-account.json` + `GOOGLE_APPLICATION_CREDENTIALS` 환경변수 |
 
 > 서비스 계정 키 발급 및 관리 방법 → 루트 `README.md` Firebase 섹션 참고
 
