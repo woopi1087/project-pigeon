@@ -80,10 +80,10 @@ POST /api/messages/send
 {
   "channel": "FCM",
   "to": "fcm-device-token",
-  "title": "분석 완료",
-  "body": "등기부등본 분석이 완료되었습니다.",
+  "title": "알림 제목",
+  "body": "알림 본문 내용입니다.",
   "data": {
-    "jobId": "abc123"
+    "key": "value"
   }
 }
 ```

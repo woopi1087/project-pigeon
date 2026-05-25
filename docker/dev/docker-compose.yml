@@ -17,7 +17,7 @@ services:
     ports:
       - "8081:8081"
     networks:
-      - safehome-net
+      - pigeon-net
     depends_on:
       pigeon-db:
         condition: service_healthy
@@ -40,7 +40,7 @@ services:
     volumes:
       - pigeon-db-data:/var/lib/postgresql/data
     networks:
-      - safehome-net
+      - pigeon-net
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-pigeon} -d pigeon"]
@@ -52,5 +52,4 @@ volumes:
   pigeon-db-data:
 
 networks:
-  safehome-net:
-    external: true
+  pigeon-net:
