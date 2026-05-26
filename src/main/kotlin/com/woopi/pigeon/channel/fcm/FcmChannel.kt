@@ -1,7 +1,9 @@
 package com.woopi.pigeon.channel.fcm
 
 import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.messaging.FirebaseMessagingException
 import com.google.firebase.messaging.Message
+import com.google.firebase.messaging.MessagingErrorCode
 import com.google.firebase.messaging.Notification
 import com.woopi.pigeon.channel.ChannelType
 import com.woopi.pigeon.channel.MessageChannel
@@ -55,6 +57,25 @@ class FcmChannel(
                 title     = request.title,
                 messageId = messageId,
             )
+        } catch (e: FirebaseMessagingException) {
+            if (e.messagingErrorCode == MessagingErrorCode.UNREGISTERED) {
+                log.warn("[FCM] 만료된 토큰 | token={}", tokenPreview)
+                messageLogService.saveFail(
+                    channel   = ChannelType.FCM,
+                    recipient = request.to,
+                    title     = request.title,
+                    error     = e.message,
+                )
+                throw UnregisteredTokenException(request.to)
+            }
+            log.error("[FCM] 발송 실패 | token={}, error={}", tokenPreview, e.message, e)
+            messageLogService.saveFail(
+                channel   = ChannelType.FCM,
+                recipient = request.to,
+                title     = request.title,
+                error     = e.message,
+            )
+            throw e
         } catch (e: Exception) {
             log.error("[FCM] 발송 실패 | token={}, error={}", tokenPreview, e.message, e)
             messageLogService.saveFail(

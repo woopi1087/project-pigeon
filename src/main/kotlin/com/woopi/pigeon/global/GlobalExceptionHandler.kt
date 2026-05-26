@@ -1,5 +1,6 @@
 package com.woopi.pigeon.global
 
+import com.woopi.pigeon.channel.fcm.UnregisteredTokenException
 import com.woopi.pigeon.dto.ApiResponse
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -14,6 +15,11 @@ class GlobalExceptionHandler {
     fun handleValidation(e: MethodArgumentNotValidException): ResponseEntity<ApiResponse<Nothing>> {
         val message = e.bindingResult.fieldErrors.joinToString { "${it.field}: ${it.defaultMessage}" }
         return ResponseEntity.badRequest().body(ApiResponse.error("VALIDATION_ERROR", message))
+    }
+
+    @ExceptionHandler(UnregisteredTokenException::class)
+    fun handleUnregisteredToken(e: UnregisteredTokenException): ResponseEntity<ApiResponse<Nothing>> {
+        return ResponseEntity.badRequest().body(ApiResponse.error("TOKEN_UNREGISTERED", e.message ?: "만료된 FCM 토큰"))
     }
 
     @ExceptionHandler(UnsupportedOperationException::class)
